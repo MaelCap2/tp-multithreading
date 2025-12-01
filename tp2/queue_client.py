@@ -1,7 +1,8 @@
 # queue_client.py
 from multiprocessing.managers import BaseManager
-from typing import Iterable, Any
+from typing import Iterable
 
+import queue  # <--- important
 from task import Task
 
 
@@ -14,7 +15,6 @@ class QueueClient:
         port: int = 50000,
         authkey: bytes = b"upssitech",
     ) -> None:
-        # Déclaration d'un Manager client (sans callable)
         class _QueueManager(BaseManager):
             pass
 
@@ -35,34 +35,52 @@ class Boss(QueueClient):
 
     def submit_tasks(self, tasks: Iterable[Task]) -> None:
         for t in tasks:
-            print(f"[Boss] envoi de la tâche {t.identifier}")
+            print(f"[Boss] envoi de la tâche {t.identifier} (size={t.size})")
             self.task_queue.put(t)
 
-    def send_stop(self, n_minions: int) -> None:
-        """Envoie des sentinelles None pour arrêter les Minions."""
-        for _ in range(n_minions):
-            self.task_queue.put(None)
-
-    def collect_results(self, n_tasks: int) -> list[dict[str, Any]]:
-        """Récupère n_tasks résultats (dictionnaires renvoyés par Task.work)."""
-        results: list[dict[str, Any]] = []
+    def collect_results(self, n_tasks: int) -> list[Task]:
+        """Récupère n_tasks Task complétées."""
+        results: list[Task] = []
         for _ in range(n_tasks):
-            res = self.result_queue.get()
-            print(f"[Boss] résultat reçu pour tâche {res['id']}")
-            results.append(res)
+            task: Task = self.result_queue.get()
+            print(
+                f"[Boss] résultat reçu pour tâche {task.identifier} "
+                f"(size={task.size}, time={task.time:.6f}s)"
+            )
+            results.append(task)
         return results
 
 
 class Minion(QueueClient):
-    """Boucle de travail : lit des Task, appelle work(), renvoie le résultat."""
+    """Boucle de travail : lit des Task, appelle work(), renvoie la Task.
+    S'arrête automatiquement s'il n'a plus de tâches pendant un certain temps.
+    """
 
     def work_loop(self) -> None:
-        while True:
-            task = self.task_queue.get()
-            if task is None:
-                print("[Minion] arrêt demandé, je m'arrête.")
-                break
+        IDLE_TIMEOUT = 2.0  # secondes max d'attente sur une tâche
+        MAX_IDLE_CYCLES = 3  # nombre de timeouts consécutifs avant arrêt
 
-            print(f"[Minion] exécution de la tâche {task.identifier}")
-            result = task.work()
-            self.result_queue.put(result)
+        idle_cycles = 0
+
+        while True:
+            try:
+                # on attend une tâche au max IDLE_TIMEOUT secondes
+                task = self.task_queue.get(timeout=IDLE_TIMEOUT)
+            except queue.Empty:
+                idle_cycles += 1
+                print(
+                    f"[Minion] aucune tâche reçue (idle {idle_cycles}/{MAX_IDLE_CYCLES})"
+                )
+                if idle_cycles >= MAX_IDLE_CYCLES:
+                    print("[Minion] plus de tâches depuis un moment, je m'arrête.")
+                    break
+                continue  # on retente un get()
+
+            # on a bien reçu une tâche : on reset le compteur d'inactivité
+            idle_cycles = 0
+
+            print(
+                f"[Minion] exécution de la tâche {task.identifier} (size={task.size})"
+            )
+            task.work()
+            self.result_queue.put(task)
