@@ -2,7 +2,6 @@
 from multiprocessing.managers import BaseManager
 from typing import Iterable
 
-import queue  # <--- important
 from task import Task
 
 
@@ -53,31 +52,33 @@ class Boss(QueueClient):
 
 class Minion(QueueClient):
     """Boucle de travail : lit des Task, appelle work(), renvoie la Task.
-    S'arrête automatiquement s'il n'a plus de tâches pendant un certain temps.
+    - Attente bloquante pour la première tâche
+    - Puis arrêt si la queue reste vide un certain temps.
     """
 
     def work_loop(self) -> None:
-        IDLE_TIMEOUT = 2.0  # secondes max d'attente sur une tâche
-        MAX_IDLE_CYCLES = 3  # nombre de timeouts consécutifs avant arrêt
+        import queue as _queue  # pour l'exception Empty locale
 
-        idle_cycles = 0
+        IDLE_TIMEOUT = 1.0  # secondes max d'attente après la première tâche
 
+        # --- Phase 1 : on attend la première tâche (bloquant) ---
+        print("[Minion] en attente de la première tâche...")
+        first_task = self.task_queue.get()  # attente infinie
+        print(
+            f"[Minion] première tâche reçue : {first_task.identifier} "
+            f"(size={first_task.size})"
+        )
+        first_task.work()
+        self.result_queue.put(first_task)
+
+        # --- Phase 2 : on continue tant qu'il y a du travail ---
         while True:
             try:
-                # on attend une tâche au max IDLE_TIMEOUT secondes
                 task = self.task_queue.get(timeout=IDLE_TIMEOUT)
-            except queue.Empty:
-                idle_cycles += 1
-                print(
-                    f"[Minion] aucune tâche reçue (idle {idle_cycles}/{MAX_IDLE_CYCLES})"
-                )
-                if idle_cycles >= MAX_IDLE_CYCLES:
-                    print("[Minion] plus de tâches depuis un moment, je m'arrête.")
-                    break
-                continue  # on retente un get()
-
-            # on a bien reçu une tâche : on reset le compteur d'inactivité
-            idle_cycles = 0
+            except _queue.Empty:
+                # plus de nouvelle tâche pendant IDLE_TIMEOUT
+                print("[Minion] queue vide, je m'arrête.")
+                break
 
             print(
                 f"[Minion] exécution de la tâche {task.identifier} (size={task.size})"
