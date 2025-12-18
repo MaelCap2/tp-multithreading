@@ -59,9 +59,8 @@ class Minion(QueueClient):
     def work_loop(self) -> None:
         import queue as _queue  # pour l'exception Empty locale
 
-        IDLE_TIMEOUT = 1.0  # secondes max d'attente après la première tâche
+        IDLE_TIMEOUT = 1.0
 
-        # --- Phase 1 : on attend la première tâche (bloquant) ---
         print("[Minion] en attente de la première tâche...")
         first_task = self.task_queue.get()  # attente infinie
         print(
@@ -71,7 +70,6 @@ class Minion(QueueClient):
         first_task.work()
         self.result_queue.put(first_task)
 
-        # --- Phase 2 : on continue tant qu'il y a du travail ---
         while True:
             try:
                 task = self.task_queue.get(timeout=IDLE_TIMEOUT)
