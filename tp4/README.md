@@ -18,8 +18,8 @@ python run_boss.py
 ```
 
 ## Terminal 4 — Client C++
-```bash
 Compilation (une seule fois)
+```bash
 cmake -B build -S .
 cmake --build build
 ```
