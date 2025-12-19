@@ -4,17 +4,17 @@ Ouvrir 4 terminaux dans le dossier tp4/.
 
 ## Terminal 1 — Manager
 ```bash
-python manager.py
+python3 manager.py
 ```
 
 ## Terminal 2 — Proxy HTTP
 ```bash
-python proxy.py
+python3 proxy.py
 ```
 
 ## Terminal 3 — Boss (envoi des tâches)
 ```bash
-python run_boss.py
+python3 run_boss.py
 ```
 
 ## Terminal 4 — Client C++
