@@ -1,6 +1,6 @@
 # Lancer les composants (ordre obligatoire)
 
-Ouvrir 3 terminaux dans le dossier tp4/.
+Ouvrir 3 terminaux dans le dossier tp3/.
 
 ## Terminal 1 — Manager
 ```bash
