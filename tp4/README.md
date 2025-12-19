@@ -1,23 +1,23 @@
-## Lancer les composants (ordre obligatoire)
+# Lancer les composants (ordre obligatoire)
 
 Ouvrir 4 terminaux dans le dossier tp4/.
 
-# Terminal 1 — Manager
+## Terminal 1 — Manager
 ```bash
 python manager.py
 ```
 
-# Terminal 2 — Proxy HTTP
+## Terminal 2 — Proxy HTTP
 ```bash
 python proxy.py
 ```
 
-# Terminal 3 — Boss (envoi des tâches)
+## Terminal 3 — Boss (envoi des tâches)
 ```bash
 python run_boss.py
 ```
 
-# Terminal 4 — Client C++
+## Terminal 4 — Client C++
 ```bash
 Compilation (une seule fois)
 cmake -B build -S .
@@ -29,7 +29,7 @@ Exécution
 ./build/low_level --n 5
 ```
 
-## Arrêt
+# Arrêt
 
 run_boss.py et low_level se terminent automatiquement
 
